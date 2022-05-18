@@ -1,3 +1,4 @@
+![geotab-banner](images/geotab-banner.jpg)
 # Geotab SDK challenge
 Backup application to progressively download vehicle data.
 
