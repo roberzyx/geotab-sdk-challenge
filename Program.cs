@@ -74,15 +74,9 @@ namespace GeotabChallenge
                     Console.WriteLine($"Timestamp: {DateTime.Now}");
                     Console.WriteLine($"Odometer: {Math.Round(odometerData / 1000)} KMS");
 
-
-                    double latitude;
-                    double longitude;
-
+                    
                     if (deviceStatusInfo.Count > 0)
-                    {
-                        latitude = deviceStatusInfo[0].Latitude ?? 0;
-                        longitude = deviceStatusInfo[0].Longitude ?? 0;
-                        
+                    {                        
                         Console.WriteLine($"Latitude: {deviceStatusInfo[0].Latitude}");
                         Console.WriteLine($"Longitude: {deviceStatusInfo[0].Longitude}");
                     }
@@ -91,10 +85,13 @@ namespace GeotabChallenge
                         Console.WriteLine("Coordinates not found");
                     }
 
-                    vehiclesWithData.Add(new VehicleWithData(device, odometerData, latitude, longitude));
+                    //If there is no coordinates data, we pass a null value
+                    vehiclesWithData.Add(new VehicleWithData(device, odometerData, deviceStatusInfo[0].Latitude ?? null, deviceStatusInfo[0].Longitude ?? null));
 
                     Console.WriteLine("-----------------------------------------------------");
                 }
+
+                WriteCsvFiles(vehiclesWithData, "backup", DateTime.UtcNow);
             }
             catch (Exception e)
             {
@@ -110,13 +107,13 @@ namespace GeotabChallenge
             }
         }
 
-        //Writes a CSV for each Vehicle, appending it to the already written data
-        static void WriteCsv(IEnumerable<VehicleWithData> vehicles, string fileName, DateTime utcDate)
+        //Writes a CSV for each Vehicle, appending it to the already written data if there is some
+        static void WriteCsvFiles(IEnumerable<VehicleWithData> vehicles, string path, DateTime utcDate)
         {
             foreach (var vehicle in vehicles)
             {
                 Console.WriteLine($"Writing backup for vehicle {vehicle.Device.Id}");
-                using (var writer = new StreamWriter(fileName))
+                using (var writer = new StreamWriter($"{path}/{vehicle.Device.Name}.csv"))
                 {
                     writer.WriteLine(
                         $"{vehicle.Device.Id};" +
