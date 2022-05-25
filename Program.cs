@@ -33,7 +33,7 @@ namespace GeotabChallenge
                 Console.WriteLine("Succesfully authenticated");
                 Console.ForegroundColor = ConsoleColor.White;
 
-                IList<VehicleWithData> vehiclesWithData = new List<VehicleWithData>();                
+                IList<VehicleWithData> vehiclesWithData = new List<VehicleWithData>();
 
                 Console.WriteLine("Calling API to get the devices");
 
@@ -74,9 +74,8 @@ namespace GeotabChallenge
                     Console.WriteLine($"Timestamp: {DateTime.Now}");
                     Console.WriteLine($"Odometer: {Math.Round(odometerData / 1000)} KMS");
 
-                    
                     if (deviceStatusInfo.Count > 0)
-                    {                        
+                    {
                         Console.WriteLine($"Latitude: {deviceStatusInfo[0].Latitude}");
                         Console.WriteLine($"Longitude: {deviceStatusInfo[0].Longitude}");
                     }
@@ -86,7 +85,7 @@ namespace GeotabChallenge
                     }
 
                     //If there is no coordinates data, we pass a null value
-                    vehiclesWithData.Add(new VehicleWithData(device, odometerData, deviceStatusInfo[0].Latitude ?? null, deviceStatusInfo[0].Longitude ?? null));
+                    vehiclesWithData.Add(new VehicleWithData(device, odometerData, deviceStatusInfo.Count > 0 ? deviceStatusInfo[0].Latitude : null, deviceStatusInfo.Count > 0 ? deviceStatusInfo[0].Longitude : null));
 
                     Console.WriteLine("-----------------------------------------------------");
                 }
@@ -96,7 +95,8 @@ namespace GeotabChallenge
             catch (Exception e)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(e.Message, e.StackTrace);
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
                 Console.ForegroundColor = ConsoleColor.White;
             }
             finally
@@ -108,11 +108,17 @@ namespace GeotabChallenge
         }
 
         //Writes a CSV for each Vehicle, appending it to the already written data if there is some
-        static void WriteCsvFiles(IEnumerable<VehicleWithData> vehicles, string path, DateTime utcDate)
+        static void WriteCsvFiles(IList<VehicleWithData> vehicles, string path, DateTime utcDate)
         {
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+
             foreach (var vehicle in vehicles)
             {
                 Console.WriteLine($"Writing backup for vehicle {vehicle.Device.Id}");
+
                 using (var writer = new StreamWriter($"{path}/{vehicle.Device.Name}.csv"))
                 {
                     writer.WriteLine(
@@ -121,10 +127,11 @@ namespace GeotabChallenge
                         $"{vehicle.Device.DeviceType};" +
                         $"{utcDate};" +
                         $"{vehicle.OdometerData};" +
-                        $"{vehicle.Latitude};" +
-                        $"{vehicle.Longitude}"
+                        $"{vehicle.Latitude.ToString() ?? ""};" +
+                        $"{vehicle.Longitude.ToString() ?? ""}"
                     );
                 }
+
                 Console.WriteLine("File writing OK");
             }
         }

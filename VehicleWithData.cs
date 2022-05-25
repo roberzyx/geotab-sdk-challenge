@@ -14,8 +14,8 @@ namespace GeotabChallenge
         public readonly double? Latitude;
         public readonly double? Longitude;
 
-        public VehicleWithData(Device Device, double odometerData, double? latitude, double? longitude){
-            Device = Device;
+        public VehicleWithData(Device device, double odometerData, double? latitude, double? longitude){
+            Device = device;
             OdometerData = odometerData;
             Latitude = latitude;
             Longitude = longitude;
