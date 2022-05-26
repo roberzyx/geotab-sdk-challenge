@@ -13,15 +13,16 @@ namespace GeotabChallenge
             {
                 Console.WriteLine("Starting backup proccess...");
 
-                if (args.Count() != 4)
+                if (args.Count() != 5)
                 {
-                    throw new ArgumentException("Missing arguments. The format should be: dotnet.exe run -- user password database server");
+                    throw new ArgumentException("Missing arguments. The format should be: dotnet.exe run -- user password database server backupFrequency(min)");
                 }
 
                 string user = args[0];
                 string password = args[1];
                 string server = args[2];
                 string database = args[3];
+                int backupFrequency = Int32.Parse(args[4]);
 
                 //Authenticating
                 Console.WriteLine("Creating API connection...");
@@ -35,62 +36,76 @@ namespace GeotabChallenge
 
                 IList<VehicleWithData> vehiclesWithData = new List<VehicleWithData>();
 
-                Console.WriteLine("Calling API to get the devices");
-
-                var devices = await api.CallAsync<IList<Device>>("Get", typeof(Device));
-
-                Console.ForegroundColor = ConsoleColor.DarkGreen;
-                Console.WriteLine("GET devices call OK");
-                Console.ForegroundColor = ConsoleColor.White;
-
-                Console.WriteLine("Device list: \r\n");
-
-                foreach (var device in devices)
+                while (true)
                 {
-                    //Searching the status data for each device to get the odometer measurement
-                    var statusDataSearch = new StatusDataSearch
+                    Console.WriteLine("Calling API to get the devices...");
+
+                    var devices = await api.CallAsync<IList<Device>>("Get", typeof(Device));
+
+                    Console.ForegroundColor = ConsoleColor.DarkGreen;
+                    Console.WriteLine("GET devices call OK");
+                    Console.ForegroundColor = ConsoleColor.White;
+
+                    Console.WriteLine("Device list: \r\n");
+
+                    foreach (var device in devices)
                     {
-                        DeviceSearch = new DeviceSearch(device.Id),
-                        DiagnosticSearch = new DiagnosticSearch(KnownId.DiagnosticOdometerAdjustmentId),
-                        FromDate = DateTime.MaxValue
-                    };
+                        //Searching the status data for each device to get the odometer measurement
+                        var statusDataSearch = new StatusDataSearch
+                        {
+                            DeviceSearch = new DeviceSearch(device.Id),
+                            DiagnosticSearch = new DiagnosticSearch(KnownId.DiagnosticOdometerAdjustmentId),
+                            FromDate = DateTime.MaxValue
+                        };
 
-                    IList<StatusData> statusData = await api.CallAsync<IList<StatusData>>("Get", typeof(StatusData), new { search = statusDataSearch });
+                        IList<StatusData> statusData = await api.CallAsync<IList<StatusData>>("Get", typeof(StatusData), new { search = statusDataSearch });
 
-                    var odometerData = statusData[0]?.Data ?? 0;
+                        var odometerData = statusData[0]?.Data ?? 0;
 
-                    //Search for the DeviceStatusInfo to get the coordinates
-                    var deviceStatusInfoSearch = new DeviceStatusInfoSearch
-                    {
-                        DeviceSearch = new DeviceSearch(device.Id)
-                    };
+                        //Search for the DeviceStatusInfo to get the coordinates
+                        var deviceStatusInfoSearch = new DeviceStatusInfoSearch
+                        {
+                            DeviceSearch = new DeviceSearch(device.Id)
+                        };
 
-                    IList<DeviceStatusInfo> deviceStatusInfo = await api.CallAsync<IList<DeviceStatusInfo>>("Get", typeof(DeviceStatusInfo), new { search = deviceStatusInfoSearch });
+                        IList<DeviceStatusInfo> deviceStatusInfo = await api.CallAsync<IList<DeviceStatusInfo>>("Get", typeof(DeviceStatusInfo), new { search = deviceStatusInfoSearch });
 
 
-                    Console.WriteLine($"ID: {device.Id}");
-                    Console.WriteLine($"Name: {device.Name}");
-                    Console.WriteLine($"Type: {device.DeviceType}");
-                    Console.WriteLine($"Timestamp: {DateTime.Now}");
-                    Console.WriteLine($"Odometer: {Math.Round(odometerData / 1000)} KMS");
+                        Console.WriteLine($"ID: {device.Id}");
+                        Console.WriteLine($"Name: {device.Name}");
+                        Console.WriteLine($"Type: {device.DeviceType}");
+                        Console.WriteLine($"Timestamp: {DateTime.Now}");
+                        Console.WriteLine($"Odometer: {Math.Round(odometerData / 1000)} KMS");
 
-                    if (deviceStatusInfo.Count > 0)
-                    {
-                        Console.WriteLine($"Latitude: {deviceStatusInfo[0].Latitude}");
-                        Console.WriteLine($"Longitude: {deviceStatusInfo[0].Longitude}");
+                        if (deviceStatusInfo.Count > 0)
+                        {
+                            Console.WriteLine($"Latitude: {deviceStatusInfo[0].Latitude}");
+                            Console.WriteLine($"Longitude: {deviceStatusInfo[0].Longitude}");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Coordinates not found");
+                        }
+
+                        //If there is no coordinates data, we pass a null value
+                        vehiclesWithData.Add(new VehicleWithData(device, odometerData, deviceStatusInfo.Count > 0 ? deviceStatusInfo[0].Latitude : null, deviceStatusInfo.Count > 0 ? deviceStatusInfo[0].Longitude : null));
+
+                        Console.WriteLine("-----------------------------------------------------");
                     }
-                    else
-                    {
-                        Console.WriteLine("Coordinates not found");
-                    }
 
-                    //If there is no coordinates data, we pass a null value
-                    vehiclesWithData.Add(new VehicleWithData(device, odometerData, deviceStatusInfo.Count > 0 ? deviceStatusInfo[0].Latitude : null, deviceStatusInfo.Count > 0 ? deviceStatusInfo[0].Longitude : null));
+                    WriteCsvFiles(vehiclesWithData, "backup", DateTime.UtcNow);
 
-                    Console.WriteLine("-----------------------------------------------------");
+                    //We will do the backup again after the time specified in the parameters
+                    Console.WriteLine($"End of the backup. The backup proccess will begin again after {backupFrequency * 1000 * 60} minutes");
+                    Console.WriteLine("...");
+                    Thread.Sleep(backupFrequency * 1000 * 60);
                 }
-
-                WriteCsvFiles(vehiclesWithData, "backup", DateTime.UtcNow);
+            }
+            catch (FormatException e)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Wrong arguments. The format should be: dotnet.exe run -- user password database server backupFrequency(min)");
+                Console.ForegroundColor = ConsoleColor.White;
             }
             catch (Exception e)
             {
@@ -102,7 +117,7 @@ namespace GeotabChallenge
             finally
             {
                 Console.WriteLine();
-                Console.Write("End of the backup. Press any key to close the console...");
+                Console.Write("End of the backups. Press any key to close the console...");
                 Console.ReadKey(true);
             }
         }
@@ -119,7 +134,7 @@ namespace GeotabChallenge
             {
                 Console.WriteLine($"Writing backup for vehicle {vehicle.Device.Id}");
 
-                using (var writer = new StreamWriter($"{path}/{vehicle.Device.Name}.csv"))
+                using (var writer = new StreamWriter($"{path}/{vehicle.Device.Id}.csv", true))
                 {
                     writer.WriteLine(
                         $"{vehicle.Device.Id};" +
