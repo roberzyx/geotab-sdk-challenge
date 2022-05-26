@@ -13,9 +13,9 @@ namespace GeotabChallenge
             {
                 Console.WriteLine("Starting backup proccess...");
 
-                if (args.Count() != 5)
+                if (args.Count() != 6)
                 {
-                    throw new ArgumentException("Missing arguments. The format should be: dotnet.exe run -- user password database server backupFrequency(min)");
+                    throw new ArgumentException("Missing arguments. The format should be: dotnet.exe run -- user password database server backupFrequency(min) maximumBackups");
                 }
 
                 string user = args[0];
@@ -23,6 +23,7 @@ namespace GeotabChallenge
                 string server = args[2];
                 string database = args[3];
                 int backupFrequency = Int32.Parse(args[4]);
+                int maxBackups = Int32.Parse(args[5]);
 
                 //Authenticating
                 Console.WriteLine("Creating API connection...");
@@ -36,8 +37,13 @@ namespace GeotabChallenge
 
                 IList<VehicleWithData> vehiclesWithData = new List<VehicleWithData>();
 
-                while (true)
+                //We will do the backup for a specific number of times, because we don't want to have an infinite loop that can create massive files
+                int backupCount = 0;
+                while (backupCount < maxBackups)
                 {
+                    backupCount++;
+                    Console.WriteLine($"Starting backup number {backupCount}");
+                    
                     Console.WriteLine("Calling API to get the devices...");
 
                     var devices = await api.CallAsync<IList<Device>>("Get", typeof(Device));
@@ -94,11 +100,12 @@ namespace GeotabChallenge
                     }
 
                     WriteCsvFiles(vehiclesWithData, "backup", DateTime.UtcNow);
+                    vehiclesWithData.Clear();
 
                     //We will do the backup again after the time specified in the parameters
-                    Console.WriteLine($"End of the backup. The backup proccess will begin again after {backupFrequency * 1000 * 60} minutes");
+                    Console.WriteLine($"End of the backup. The backup proccess will begin again after {backupFrequency} minutes");
                     Console.WriteLine("...");
-                    Thread.Sleep(backupFrequency * 1000 * 60);
+                    Thread.Sleep(backupFrequency * 60 * 1000);
                 }
             }
             catch (FormatException e)
