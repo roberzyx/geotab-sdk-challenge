@@ -68,8 +68,8 @@ namespace GeotabChallenge
                             DeviceSearch = new DeviceSearch(device.Id)
                         };
 
-                        IList<DeviceStatusInfo> deviceStatusInfo = await api.CallAsync<IList<DeviceStatusInfo>>("Get", typeof(DeviceStatusInfo), new { search = deviceStatusInfoSearch });
 
+                        IList<DeviceStatusInfo> deviceStatusInfo = await api.CallAsync<IList<DeviceStatusInfo>>("Get", typeof(DeviceStatusInfo), new { search = deviceStatusInfoSearch });
 
                         Console.WriteLine($"ID: {device.Id}");
                         Console.WriteLine($"Name: {device.Name}");
