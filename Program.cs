@@ -111,7 +111,7 @@ namespace GeotabChallenge
             catch (FormatException e)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Wrong arguments. The format should be: dotnet.exe run -- user password database server backupFrequency(min)");
+                Console.WriteLine("Wrong arguments. The format should be: dotnet.exe run -- user password database server backupFrequency(min) maxNumberOfBackups");
                 Console.ForegroundColor = ConsoleColor.White;
             }
             catch (Exception e)

@@ -10,3 +10,15 @@ Create a backup application to progressively download vehicle data. You must use
 
 Demo database and credentials: Sent by email and it’ll be active for a few weeks.
 Evaluation criterias: follow the requisitions, simplicity & clarity, easy to execute. The combination of these criterias will imply “easy to maintain”.
+
+## How to run the app
+The project has been developed in Visual Studio Code using .Net Core 6.0.
+
+To run the code must do the following:
+
+```shell
+> git clone https://github.com/roberzyx/geotab-sdk-challenge.git geotab-sdk-challenge
+> cd geotab-sdk-challenge
+> dotnet.exe run -- user password database server backupFrequency(min) maxNumberOfBackups
+```
+
